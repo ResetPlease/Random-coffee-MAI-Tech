@@ -1,0 +1,168 @@
+
+version: "3.4"
+
+
+services:
+
+  postgres:
+    image: postgres:13-alpine
+    restart: always
+    env_file:
+      ./configs/postgres.env
+    networks:
+      - backend-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -h localhost -p $$POSTGRES_PORT"]
+      interval: 10s
+      retries: 5
+      start_period: 1s
+      timeout: 5s
+
+  migrations:
+    build: ./backend/python_services/migration_service
+    command: ["sh", "-c", "./entrypoint.sh"]
+    volumes:
+      - ./backend/python_services/migration_service/migration:/code/migration
+      - ./backend/python_services/core:/code/core
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend-network
+    env_file:
+      - ./configs/postgres_connection.env
+      - ./configs/migration.env
+
+
+  redis:
+    image: redis:latest
+    env_file:
+      - ./configs/redis.env
+    command: ["sh", "-c", "redis-server --loglevel debug --port $$REDIS_PORT --requirepass $$REDIS_PASSWORD"]
+    networks:
+      - backend-network
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -p $$REDIS_PORT -a $$REDIS_PASSWORD ping | grep PONG"]
+      interval: 1s
+      timeout: 3s
+      retries: 5
+
+  redis-commander:
+    image: ghcr.io/joeferner/redis-commander:latest
+    restart: always
+    ports:
+    - 8001:8081
+    env_file:
+      - ./configs/redis_connection.env
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - backend-network
+
+  worker:
+    build: ./backend/python_services/worker
+    command: celery --app=worker.app.Base:celery worker --loglevel=info
+    volumes:
+      - ./backend/python_services/worker/app:/code/worker/app
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - ./configs/celery.env
+    networks:
+      - backend-network
+
+  dashboard:
+    build: ./backend/python_services/worker
+    command: ["sh", "-c", "celery --broker=$$BROKER://:$$BROKER_PASSWORD@$$BROKER_HOST:$$BROKER_PORT/$$BROKER_DB flower --port=5555"]
+    ports:
+    - 8002:5555
+    volumes:
+      - ./backend/python_services/worker/app:/code/worker/app
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - ./configs/celery.env
+    networks:
+      - backend-network
+
+  email-service:
+    build: ./backend/python_services/email_service
+    command: "uvicorn app.main:app --reload --workers 1 --host 0.0.0.0 --port 8000"
+    ports:
+      - 8003:8000
+    volumes:
+      - ./backend/python_services/email_service/app:/code/app
+      - ./backend/python_services/core:/code/core
+      - ./backend/python_services/worker:/code/worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend-network
+    env_file:
+      - ./configs/postgres_connection.env
+      - ./configs/redis_connection.env
+      - ./configs/email_service.env
+      - ./configs/celery.env
+
+
+  jwttoken-service:
+    build: ./backend/python_services/jwttoken_service
+    command: "uvicorn app.main:app --reload --workers 1 --host 0.0.0.0 --port 8000"
+    ports:
+      - 8004:8000
+    volumes:
+      - ./backend/python_services/jwttoken_service/app:/code/app
+      - ./backend/python_services/core:/code/core
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend-network
+    env_file:
+      - ./configs/postgres_connection.env
+      - ./configs/redis_connection.env
+      - ./configs/jwttoken_service.env
+      - ./configs/jwttoken_secret_key.env
+
+
+  auth-service:
+    build: ./backend/python_services/auth_service
+    command: "uvicorn app.main:app --reload --workers 1 --host 0.0.0.0 --port 8000"
+    ports:
+      - 8005:8000
+    volumes:
+      - ./backend/python_services/auth_service/app:/code/app
+      - ./backend/python_services/core:/code/core
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend-network
+    env_file:
+      - ./configs/postgres_connection.env
+      - ./configs/jwttoken_secret_key.env
+      - ./configs/jwttoken_service_connection.env
+      - ./configs/email_service_connection.env
+
+
+  nginx-reverse-proxy:
+    image: nginx:latest
+    ports:
+      - 8000:8080
+    volumes:
+      - ./configs/nginx_config.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - backend-network
+
+
+networks:
+  backend-network:
+    driver: bridge

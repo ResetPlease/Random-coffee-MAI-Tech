@@ -1,0 +1,5 @@
+fastapi[all]
+aiohttp
+sqlalchemy
+asyncpg
+sqlalchemy-utils
