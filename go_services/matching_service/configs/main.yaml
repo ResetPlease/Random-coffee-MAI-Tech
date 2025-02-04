@@ -1,0 +1,8 @@
+server:
+  - host: "localhost"
+  - port: 5050
+
+database:
+  - url: "localhost"
+  - username: GET_ENV db_username
+  - password: GET_ENV db_password # get from ENV in config code
