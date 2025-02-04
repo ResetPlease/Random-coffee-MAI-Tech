@@ -1,0 +1,3 @@
+version: '3.8'
+services:
+# Service definitions will go here
