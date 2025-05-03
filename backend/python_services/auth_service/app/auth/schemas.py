@@ -1,43 +1,32 @@
-from pydantic import Field, ConfigDict, field_serializer, field_validator, PositiveInt
-from core.schemas import BaseModel, LoginUserInfo, PublicUserInfoIn
-from hashlib import sha256
+from pydantic import Field, ConfigDict, field_validator
+from core.schemas import BaseModel, LoginUserInfo, PublicUserInfoIn, Str
+from uuid import UUID
+
 
 
 class UserCredentialsIn(BaseModel):
-    password : str = Field(serialization_alias = 'hash_password', min_length = 5, max_length = 50, description = 'Password')
+    password : Str = Field(exclude = True, min_length = 5, max_length = 50, description = 'Password')
     
-    @field_serializer('password')
-    @classmethod
-    def password_serialize(cls, password : str) -> str:
-        return sha256(str.encode(password)).hexdigest()
     
 
-class UserVerifyPasswordIn(LoginUserInfo):
-    code : PositiveInt = Field(exclude = True, description = 'email verify code')
+class UserVerifyAccessIn(LoginUserInfo):
+    operation_id : UUID | None = Field(exclude = True, default = None)
     
 
-
-
-class UserLoginCredentialsIn(UserCredentialsIn, UserVerifyPasswordIn):
-    model_config = ConfigDict(title = 'Login to the account')
+class UserLoginCredentialsIn(UserCredentialsIn, LoginUserInfo):
+    model_config = ConfigDict(title = 'Logining to the account')
     
 
 
-
-class UserRegistrationCredentialsIn(PublicUserInfoIn, UserCredentialsIn, UserVerifyPasswordIn):
+class UserRegistrationCredentialsIn(UserCredentialsIn, UserVerifyAccessIn, PublicUserInfoIn):
     model_config = ConfigDict(title = 'Creating an account')
         
         
         
-class UserChangePasswordIn(UserCredentialsIn, UserVerifyPasswordIn):
+class UserChangePasswordIn(UserCredentialsIn, UserVerifyAccessIn, LoginUserInfo):
     model_config = ConfigDict(title = 'Change password')
     
-    
 
-    
-
-   
-    
 
     
 

@@ -1,31 +1,28 @@
-from redis.asyncio import Redis
-from redis.asyncio.client import Pipeline
-from core.models.redis import settings
+from redis.asyncio.client import Pipeline, Redis
+from core.models.redis import client
+from core.param_decorator import func_parameter, AsyncCreatingParameterGenerator
 
-class RedisDAO:
-    
-    __client = Redis(host = settings.REDIS_HOST, port = settings.REDIS_PORT, password = settings.REDIS_PASSWORD, db = settings.REDIS_DB)
+
+
+class RedisDAO: 
     
     @classmethod
-    def get_pipeline(cls):
-        
-        def decorator(func):
+    @func_parameter(name = 'pipeline')
+    async def get_pipeline(cls) -> AsyncCreatingParameterGenerator[Pipeline]:
+        async with client.pipeline() as pipeline:
+            yield pipeline
             
-            async def wrapper(*args : tuple, **kwargs):
-                if isinstance(args[-1], Pipeline):
-                    return await func(*args, **kwargs)
-                
-                async with cls.__client.pipeline() as pipeline:
-                    return await func(*args, pipeline = pipeline, **kwargs)
-            
-            return wrapper
-        
-        return decorator
     
+    @classmethod
+    @func_parameter()
+    async def get_client(cls) -> AsyncCreatingParameterGenerator[Redis]:
+        yield client
+    
+     
     
     @classmethod
     async def shutdown(cls) -> None:
-        await cls.__client.aclose()
+        await client.aclose()
 
     
     

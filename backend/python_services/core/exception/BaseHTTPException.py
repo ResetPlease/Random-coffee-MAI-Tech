@@ -1,38 +1,55 @@
-from typing import Any
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Any, Self
+from pydantic import BaseModel, ConfigDict, Field, errors
 from fastapi.responses import JSONResponse
 from fastapi import Request
+from copy import deepcopy
+
 
 
 class BaseHTTPExceptionModel(BaseModel):
     message : str = Field(description = 'Details')
     
-    model_config = ConfigDict(frozen = True, extra = 'allow')
+    model_config = ConfigDict(frozen = False, extra = 'allow', json_schema_extra = {'additionalProperties' : False})
     
 
 
 
 class BaseHTTPException(Exception):
     
-    _all_responses_schemas : dict[type, dict[int, dict[str, Any]]] = {}
+    _all_responses_schemas : dict[type['BaseHTTPException'], dict[int, dict[str, Any]]] = {}
     
-    def __init__(self, 
-                status_code : int,
-                detail : BaseHTTPExceptionModel,
-                headers : dict[str, str] | None = None,
-                cookies : dict[str, str | dict[str, str]] | None = None,
-                response_schema : dict[str, Any] | None = None
+    def __init__(
+                    self, 
+                    status_code     : int,
+                    detail          : BaseHTTPExceptionModel,
+                    headers         : dict[str, str] | None = None,
+                    cookies         : dict[str, str | dict[str, str]] | None = None,
+                    response_schema : dict[str, Any] | None = None,
+                    need_registrate : bool = True
             ) -> None:
-        if status_code > 499 or status_code < 400:
+        if not(400 <= status_code <= 499):
             raise ValueError('status_code have incorrect value')
         
         self.status_code = status_code
-        self.headers = headers
-        self.cookies = cookies if cookies is not None else {}
-        self.detail = {
-                        'detail' : detail.model_dump()
-                    }
-        self.__registrate_new_obj(status_code, detail, response_schema)
+        self.headers     = headers or {}
+        self.cookies     = cookies or {}
+        self.detail      = detail
+        
+        if need_registrate:
+            self._registrate_new_obj(status_code, detail, response_schema)
+            
+            
+
+    def copy(self) -> Self:
+        return type(self)(
+                            self.status_code,
+                            self.detail.model_copy(deep = True), 
+                            self.headers.copy(),
+                            deepcopy(self.cookies),
+                            need_registrate = False
+                        )
+        
+        
     
     
     
@@ -45,7 +62,8 @@ class BaseHTTPException(Exception):
         return f'{self.status_code} : {self.detail}'
     
     
-    def __registrate_new_obj(self,
+    def _registrate_new_obj(
+                            self,
                             status_code : int,
                             detail : BaseHTTPExceptionModel,
                             response_schema : dict[str, Any] | None = None
@@ -75,7 +93,7 @@ class BaseHTTPException(Exception):
 
 async def http_exception_handler(request: Request, exc: BaseHTTPException) -> JSONResponse:
     
-    response = JSONResponse(status_code = exc.status_code, content = exc.detail, headers = exc.headers)
+    response = JSONResponse(status_code = exc.status_code, content = {'detail' : exc.detail.model_dump()}, headers = exc.headers)
     
     for key, value in exc.cookies.items():
         if isinstance(value, str):
@@ -84,5 +102,8 @@ async def http_exception_handler(request: Request, exc: BaseHTTPException) -> JS
             response.set_cookie(key = key, **value)
         
     return response
-            
-            
+          
+     
+     
+     
+     

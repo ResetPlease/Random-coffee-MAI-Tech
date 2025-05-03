@@ -1,52 +1,42 @@
 from .schemas import UserRegistrationCredentialsIn, UserLoginCredentialsIn, UserChangePasswordIn
-from core.models.postgres import UserDB
-from fastapi import status
 from core.schemas import UserID
 from sqlalchemy import select, insert, update
-from core.exception import BaseHTTPException, BaseHTTPExceptionModel
 from core.dao.postgres import PostgresDAO, AsyncSession
-from core.dao.http import HTTPRequest, HTTPResponseType
+from core.param_decorator import self_parameter
 from sqlalchemy.exc import IntegrityError
-from core.dependencies.JWTToken import IssuedJWTTokensOut
 from .errors import EmailOccupiedError, InvalidPasswordError, InvalidEmailError
-from core.services.jwttoken import get_jwt_service_settings, encoded_secret_key
+from .utils import AuthenticationUtils
+from pydantic import EmailStr
+from core.models.postgres import UserDB
 
 
 
-class AuthDAO(PostgresDAO):
+
+class AuthenticationDAO(PostgresDAO):
     
-    @classmethod
-    async def get_tokens(cls, user_id : UserID) -> IssuedJWTTokensOut:
-        jwt_service_settings = get_jwt_service_settings()
-        response = await HTTPRequest.post(   
-                                            server = jwt_service_settings.JWT_SERVICE_NAME,
-                                            port = jwt_service_settings.JWT_SERVICE_PORT,
-                                            endpoint = jwt_service_settings.JWT_ISSUE_TOKENS_ENDPOINT,
-                                            headers = {'SecretKey' : encoded_secret_key()},
-                                            body = {'user_id' : user_id},
-                                            response_method = HTTPResponseType.JSON
-                                        )
-        
-        if response.get('detail') is not None:
-            raise BaseHTTPException(
-                                    status_code = status.HTTP_400_BAD_REQUEST,
-                                    detail = BaseHTTPExceptionModel.model_validate(response['detail'])
-                                )
-        
-        return IssuedJWTTokensOut.model_validate(response)  
+    
+    __slots__ = ('auth_utils', )
+    
+    
+    def __init__(self, auth_utils : AuthenticationUtils) -> None:
+        self.auth_utils = auth_utils
 
     
     
-    @classmethod
+    @self_parameter()
     @PostgresDAO.get_session(auto_commit = True)
-    async def registrate(
-                        cls,
-                        session : AsyncSession, 
-                        *,
-                        user_credentials : UserRegistrationCredentialsIn
-                    ) -> UserID:
+    async def create_new_user(
+                            self,
+                            session : AsyncSession, 
+                            user_credentials : UserRegistrationCredentialsIn
+                        ) -> UserID:
         user_id : UserID
-        query_for_new_user = insert(UserDB).values(user_credentials.model_dump()).returning(UserDB.id)
+        query_for_new_user = insert(UserDB).values(
+                                                    hash_password = self.auth_utils.hashing_password(user_credentials.password),
+                                                    **user_credentials.model_dump()
+                                                ).returning(
+                                                    UserDB.id
+                                                )
         
         try:
             user_id = await session.scalar(query_for_new_user)
@@ -56,49 +46,49 @@ class AuthDAO(PostgresDAO):
         return user_id
     
     
-    @classmethod
+    
+    @self_parameter()
     @PostgresDAO.get_session()
-    async def login(
-                    cls,
-                    session : AsyncSession,
-                    *,
-                    user_credentials : UserLoginCredentialsIn
-                ) -> UserID:
-        user_data = user_credentials.model_dump()
-        query_for_find_user = select(UserDB).where(UserDB.email == user_data['email'])
+    async def get_user_by_email(
+                                self,
+                                session : AsyncSession,
+                                email : EmailStr,
+                                password : str
+                            ) -> UserDB:
+        query_for_find_user = select(UserDB).where(UserDB.email == email)
         user = await session.scalar(query_for_find_user)
         
         if user is None:
             raise InvalidEmailError
         
-        if user.hash_password != user_data['hash_password']:
+        if user.hash_password != self.auth_utils.hashing_password(password):
             raise InvalidPasswordError 
         
-        return user.id
+        return user
     
     
-    @classmethod
+    
+    @self_parameter()
     @PostgresDAO.get_session(auto_commit = True)
-    async def change_password(
-                                cls,
-                                session : AsyncSession,
-                                *,
-                                user_credentials : UserChangePasswordIn
-                            ) -> None:
-        user_data = user_credentials.model_dump()
+    async def change_user_password(
+                                    self,
+                                    session : AsyncSession,
+                                    email : EmailStr,
+                                    new_password : str
+                                ) -> None:
         query_for_update_password = update(UserDB).where(
-                                                            UserDB.email == user_data['email']
-                                                        ).values(
-                                                            hash_password = user_data['hash_password']
-                                                        ).returning(
-                                                            UserDB.id
-                                                        )
+                                                        UserDB.email == email
+                                                    ).values(
+                                                        hash_password = self.auth_utils.hashing_password(new_password)
+                                                    ).returning(
+                                                        UserDB.id
+                                                    )
                         
         user_id = await session.scalar(query_for_update_password)
         
         if user_id is None:
             raise InvalidEmailError
-        
-        return user_id
-        
-        
+
+
+
+

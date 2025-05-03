@@ -20,9 +20,10 @@ class Base(AsyncAttrs, DeclarativeBase):
         str_attrs : list[str] = []
         
         for attr, value in self.__dict__.items():
-            if attr.startswith('_') is not True and hasattr(value, '__repr__') is True:
+            if not attr.startswith('_') and hasattr(value, '__repr__'):
                 str_attrs.append(f'{attr} = {value}')
                 
         return f'{name}({", ".join(str_attrs)})'
     
     
+

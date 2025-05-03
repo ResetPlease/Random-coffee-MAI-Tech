@@ -31,7 +31,8 @@ def one_to_one_relationship(*args, **kwargs) -> _RelationshipDeclared[Any]:
     lazy : str = kwargs.pop('lazy', 'raise_on_sql')
     cascade : str = kwargs.pop('cascade', 'all')
     uselist : bool = kwargs.pop('uselist', False)
-    return relationship(*args,
+    return relationship(
+                        *args,
                         lazy = lazy,
                         cascade = cascade,
                         uselist = uselist,
@@ -42,7 +43,8 @@ def one_to_one_relationship(*args, **kwargs) -> _RelationshipDeclared[Any]:
 def many_to_one_relationship(*args, **kwargs) -> _RelationshipDeclared[Any]:
     lazy : str = kwargs.pop('lazy', 'raise_on_sql')
     uselist : bool = kwargs.pop('uselist', False)
-    return relationship(*args,
+    return relationship(
+                        *args,
                         lazy = lazy,
                         uselist = uselist,
                         **kwargs
@@ -53,7 +55,8 @@ def one_to_many_relationship(*args, **kwargs) -> _RelationshipDeclared[Any]:
     lazy : str = kwargs.pop('lazy', 'raise_on_sql')
     cascade : str = kwargs.pop('cascade', 'all')
     passive_deletes : bool = kwargs.pop('passive_deletes', True)
-    return relationship(*args,
+    return relationship(
+                        *args,
                         lazy = lazy,
                         cascade = cascade,
                         passive_deletes = passive_deletes,

@@ -1,17 +1,16 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import SettingsConfigDict
+from core.models.base import BaseSettings
 from pydantic import Field
-from os.path import abspath, dirname
 
 
-class DBSettings(BaseSettings):
-    REDIS_PASSWORD : str
-    REDIS_PORT : int
-    REDIS_HOST : str
-    REDIS_DB : int = Field(default = 0)
+class RedisSettings(BaseSettings):
+    DB : int = Field(default = 0)
+    
     model_config = SettingsConfigDict(
+        env_prefix = 'REDIS_',
         extra = 'ignore',
         frozen = True
     )
 
 
-settings = DBSettings()
+redis_settings = RedisSettings()

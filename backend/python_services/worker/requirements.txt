@@ -1,5 +1,0 @@
-fastapi[all]
-aiohttp
-celery
-redis
-flower

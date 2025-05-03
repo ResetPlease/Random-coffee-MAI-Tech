@@ -4,3 +4,4 @@ alembic
 asyncpg
 sqlalchemy-utils
 alembic_utils
+pandas

@@ -1,25 +1,30 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import PositiveInt, Field
-from os.path import abspath, dirname
+from pydantic import PositiveInt
+from datetime import timedelta
+from app.config import SMTPSettings
+
 
 
 class ServiceSettings(BaseSettings):
-    FIRST_BLOCK_TIME : PositiveInt
-    SECOND_BLOCK_TIME : PositiveInt
-    THIRD_BLOCK_TIME : PositiveInt
+    FIRST_BLOCK_TIME : timedelta
+    SECOND_BLOCK_TIME : timedelta
+    THIRD_BLOCK_TIME : timedelta
+    BLOCK_LIFETIME : timedelta
     CODE_MAX_FAIL_ATTEMPT_COUNT : PositiveInt
-    KEY_AFTER_UNBLOCK_LIFETIME : PositiveInt
     CODE_LENGTH : PositiveInt
-    CODE_LIFETIME : PositiveInt
-    SMTP_SERVER : str
-    SMTP_PORT : PositiveInt
-    VERIFY_EMAIL_LOGIN : str
-    VERIFY_EMAIL_PASSWORD : str
+    CODE_LIFETIME : timedelta
+    SMTP : SMTPSettings
+    CODE_PAGE_SERVER : str
+    CODE_PAGE_PORT : int
+    CODE_PAGE_ENDPOINT : str
     
     model_config = SettingsConfigDict(
         extra = 'ignore',
+        env_prefix = 'VERIFY_EMAIL_',
+        env_nested_delimiter = '_',
         frozen = True
     )
 
 
 settings = ServiceSettings()
+

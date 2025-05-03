@@ -1,6 +1,6 @@
 from core.schemas import BaseModel
-from pydantic import EmailStr, Field, ConfigDict, PositiveInt
-
+from pydantic import EmailStr, Field, ConfigDict, NonNegativeInt, PositiveInt
+from uuid import UUID
 
 
 class SendEmailIn(BaseModel):
@@ -8,9 +8,18 @@ class SendEmailIn(BaseModel):
     model_config     = ConfigDict(title = 'form for send verify mail')
     
     
+class OperationIDModel(BaseModel):
+    operation_id : UUID = Field(description = 'Use this for validate your email in auth')
     
-class VerifyCodeIn(BaseModel):
-    code : PositiveInt = Field(description = 'mail code')
+    
+class SendEmailOut(OperationIDModel):
+    block_seconds : NonNegativeInt
+
+
+   
+    
+class VerifyCodeIn(OperationIDModel, BaseModel):
+    code  : PositiveInt = Field(description = 'mail code')
     email : EmailStr   = Field(description = 'email')
     model_config       = ConfigDict(title = 'code verification form')
     

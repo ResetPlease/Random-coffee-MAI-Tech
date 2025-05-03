@@ -6,6 +6,13 @@ class HTTPType(StrEnum):
     HTTPS = auto()
     
     
+class HTTPMethod(StrEnum):
+    GET = auto()
+    POST = auto()
+    PUT = auto()
+    DELETE = auto()
+    
+    
 class HTTPResponseType(StrEnum):
     JSON = auto()
     TEXT = auto()

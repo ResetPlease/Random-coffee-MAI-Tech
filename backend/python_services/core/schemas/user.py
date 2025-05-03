@@ -1,11 +1,6 @@
-from pydantic import Field, ConfigDict, EmailStr, AliasChoices
+from pydantic import Field, ConfigDict, EmailStr, AliasChoices, field_validator
 from .BaseModel import BaseModel
-from typing import TypeAlias, Annotated
-import annotated_types
-
-
-UserID : TypeAlias = Annotated[int, annotated_types.Ge(1)]
-
+from .model_types import UserID, StrXSS
 
 
 
@@ -14,15 +9,16 @@ class LoginUserInfo(BaseModel):
 
 
 class PublicUserInfo(LoginUserInfo):
-    first_name : str = Field(min_length = 1, max_length = 50)
-    last_name : str = Field(min_length = 1, max_length = 50)  
     model_config = ConfigDict(title = 'Public User Information')
  
 
 class PublicUserInfoIn(PublicUserInfo):
-    pass
-
+    first_name : StrXSS = Field(min_length = 1, max_length = 50)
+    last_name  : StrXSS = Field(min_length = 1, max_length = 50)
+    
 
 class PublicUserInfoOut(PublicUserInfo):
+    first_name : str
+    last_name  : str  
     user_id : UserID = Field(validation_alias = AliasChoices('id', 'user_id'))
     

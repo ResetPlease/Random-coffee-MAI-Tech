@@ -1,0 +1,7 @@
+fastapi[all]
+aiohttp
+asyncpg
+redis
+faststream
+aio-pika
+pymongo
