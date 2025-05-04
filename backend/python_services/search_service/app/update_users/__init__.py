@@ -1,0 +1,1 @@
+from .router import rabbitmq_router as update_users_router

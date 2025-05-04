@@ -1,0 +1,1 @@
+from .Base import set_default_cors_policy
