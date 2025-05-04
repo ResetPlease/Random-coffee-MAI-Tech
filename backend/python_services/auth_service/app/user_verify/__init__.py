@@ -1,0 +1,1 @@
+from .router import rabbitmq_router as user_verify_router

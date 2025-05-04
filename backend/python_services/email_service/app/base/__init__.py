@@ -1,0 +1,1 @@
+from .dependencies import get_send_simple_email_publisher
