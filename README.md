@@ -64,7 +64,7 @@
 ### Запуск проекта
 
 ```bash
-git clone https://github.com/your-username/random-coffee
+git clone https://github.com/ResetPlease/Random-coffee-MAI-Tech.git
 cd random-coffee
 # Перейдите в папку с конфигами
 cd configs
