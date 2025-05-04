@@ -29,7 +29,6 @@ def upgrade() -> None:
     sa.Column('meeting_datetime_start', sa.DateTime(), nullable=False),
     sa.Column('meeting_datetime_end', sa.DateTime(), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.CheckConstraint('meeting_datetime_start >  created_at'),
     sa.CheckConstraint('meeting_datetime_end > meeting_datetime_start'),
     sa.PrimaryKeyConstraint('id')
     )
