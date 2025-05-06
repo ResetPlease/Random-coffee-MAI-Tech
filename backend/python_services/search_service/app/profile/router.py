@@ -46,8 +46,7 @@ async def create_or_update_user_search_profile(
     if not form.meeting_intervals:
         await search_profile_dao.delete_user_profile(request.state.user.user_id)
     else:
-        sorted_meeting_intervals = sorted(form.meeting_intervals, key = lambda interval : interval.start)
-        await search_profile_dao.create_or_update_user_profile(request.state.user.user_id, form.min_tags_match, sorted_meeting_intervals)
+        await search_profile_dao.create_or_update_user_profile(request.state.user.user_id, form.min_tags_match, form.meeting_intervals)
     return UserActionOut()
 
 

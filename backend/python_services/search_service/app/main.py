@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from core.exception import BaseHTTPException, http_exception_handler
-from .initialization import run_initialization
 from .profile.dependencies import run_clear_profile
 from .search import search_router
 from .update_users import update_users_router
@@ -15,7 +14,7 @@ app = FastAPI(
         exception_handlers = {
             BaseHTTPException : http_exception_handler
     },
-        on_startup = [run_initialization, run_clear_profile]
+        on_startup = [run_clear_profile]
 )
 
 
