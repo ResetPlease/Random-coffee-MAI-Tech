@@ -70,7 +70,7 @@ cd random-coffee
 cd configs
 # Отредактируйте файлы в любом текстовом редакторе. Например:
 nano auth_service.env
-docker-compose up --d
+docker compose up -d
 ```
 
 

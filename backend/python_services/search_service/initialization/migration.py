@@ -1,10 +1,8 @@
-from core.dao.mongo import AsyncMongoClient, MongoDAO
+from core.dao.mongo import MongoDAO
 from pymongo.asynchronous.collection import AsyncCollection
 from core.param_decorator import self_parameter
 import json
 from datetime import datetime
-from logging import error
-
 
 
 class Initialization:
@@ -20,7 +18,7 @@ class Initialization:
     @self_parameter()
     @MongoDAO.get_collection('meetings')
     async def create_meeting_collection(self, collection : AsyncCollection) -> None:
-        meetings = json.load(open('./app/initialization/csv_data/user_meetings.csv'))
+        meetings = json.load(open('./initialization/csv_data/user_meetings.csv'))
         await collection.create_index([('user_ids', 1)])
         await collection.insert_many(meetings)
     
@@ -30,7 +28,7 @@ class Initialization:
     @self_parameter()
     @MongoDAO.get_collection('users')
     async def create_user_collection(self, collection : AsyncCollection) -> None:
-        init_users = json.load(open('./app/initialization/csv_data/search.csv'))
+        init_users = json.load(open('./initialization/csv_data/search.csv'))
         for user in (init_users):
             if not user['is_search']:
                 continue
@@ -72,3 +70,5 @@ class Initialization:
         await self.create_user_collection()
         await self.create_meeting_collection()
         
+        
+

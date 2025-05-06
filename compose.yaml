@@ -214,12 +214,13 @@ services:
 
   search-service:
     build: ./backend/python_services/search_service
-    command: "uvicorn app.main:app --workers 1 --host 0.0.0.0 --port 8000"
+    command: sh -c "python3 initialization/main.py && uvicorn app.main:app --workers 1 --reload --host 0.0.0.0 --port 8000"
     ports:
       - 8008:8000
     volumes:
       - ./backend/python_services/search_service/app:/code/app
       - ./backend/python_services/core:/code/core
+      - ./backend/python_services/search_service/initialization:/code/initialization
     depends_on:
       rabbitmq:
         condition: service_healthy
